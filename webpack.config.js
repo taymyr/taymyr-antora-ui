@@ -7,13 +7,32 @@ const CopyPlugin = require('copy-webpack-plugin')
 const HtmlPlugin = require('html-webpack-plugin')
 const MiniCssExtractPlugin = require('mini-css-extract-plugin')
 
+const createHeaderComponent = (targetPath, targetValue, fileName) => {
+  const compareTags = (htmlWebpackPlugin) => htmlWebpackPlugin.tags.headTags
+      .filter((tag) => targetPath.split('.').reduce((obj, path) => obj ? obj[path] : false, tag) === targetValue)
+      .join('')
+      // It must be Handlebars template with root path as variable
+      .replaceAll('uiRootPath', '{{{uiRootPath}}}')
+  return new HtmlPlugin({
+    publicPath: 'uiRootPath',
+    templateContent: ({htmlWebpackPlugin}) => `${compareTags(htmlWebpackPlugin)}`,
+    filename: `partials/${fileName}`,
+    inject: false
+  })
+}
+
 module.exports = {
   mode: 'production',
   module: {
     rules: [
       {
         test: /\.(sc|sa|c)ss$/i,
-        use: [MiniCssExtractPlugin.loader, 'css-loader', 'postcss-loader', 'sass-loader'],
+        use: [
+          MiniCssExtractPlugin.loader,
+          'css-loader',
+          'postcss-loader',
+          'sass-loader'
+        ],
       },
     ],
   },
@@ -22,12 +41,9 @@ module.exports = {
       filename: './css/[name].[contenthash].css'
     }),
     new ZipPlugin({ filename: bundleName }),
-    new HtmlPlugin({
-      publicPath: 'uiRootPath',
-      templateContent: ({htmlWebpackPlugin}) => `${faviconsTags(htmlWebpackPlugin)}`,
-      filename: 'partials/head-icons.hbs',
-      inject: false
-    }),
+    createHeaderComponent('meta.plugin','favicons-webpack-plugin', 'head-icons.hbs'),
+    createHeaderComponent('attributes.rel','stylesheet', 'head-styles.hbs'),
+    createHeaderComponent('tagName','script', 'head-local-scripts.hbs'),
     new FaviconsPlugin({
       logo: 'logo.svg',
       favicons: { appName: 'Taymyr' },
@@ -45,12 +61,3 @@ module.exports = {
     assetFilter: (filename) => !filename.startsWith(bundleName)
   }
 };
-
-function faviconsTags(htmlWebpackPlugin) {
-  return htmlWebpackPlugin.tags.headTags
-    // Skip script tag with bundle that generated HtmlPlugin by default
-    .filter((tag) => tag.tagName !== 'script')
-    .join('')
-    // It must be Handlebars template with root path as variable
-    .replaceAll('uiRootPath', '{{{uiRootPath}}}')
-}
