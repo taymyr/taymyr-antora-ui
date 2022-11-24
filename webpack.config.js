@@ -7,9 +7,9 @@ const CopyPlugin = require('copy-webpack-plugin')
 const HtmlPlugin = require('html-webpack-plugin')
 const MiniCssExtractPlugin = require('mini-css-extract-plugin')
 
-const createHeaderComponent = (targetPath, targetValue, fileName) => {
+const htmlHeadTags = (fileName, filterKey, filterValue) => {
   const compareTags = (htmlWebpackPlugin) => htmlWebpackPlugin.tags.headTags
-      .filter((tag) => targetPath.split('.').reduce((obj, path) => obj ? obj[path] : false, tag) === targetValue)
+      .filter((tag) => filterKey.split('.').reduce((obj, path) => obj ? obj[path] : false, tag) === filterValue)
       .join('')
       // It must be Handlebars template with root path as variable
       .replaceAll('uiRootPath', '{{{uiRootPath}}}')
@@ -41,9 +41,9 @@ module.exports = {
       filename: './css/[name].[contenthash].css'
     }),
     new ZipPlugin({ filename: bundleName }),
-    createHeaderComponent('meta.plugin','favicons-webpack-plugin', 'head-icons.hbs'),
-    createHeaderComponent('attributes.rel','stylesheet', 'head-styles.hbs'),
-    createHeaderComponent('tagName','script', 'head-local-scripts.hbs'),
+    htmlHeadTags('head-icons.hbs', 'meta.plugin', 'favicons-webpack-plugin'),
+    htmlHeadTags('head-styles.hbs', 'attributes.rel', 'stylesheet'),
+    htmlHeadTags('head-local-scripts.hbs', 'tagName', 'script'),
     new FaviconsPlugin({
       logo: 'logo.svg',
       favicons: { appName: 'Taymyr' },
