@@ -6,16 +6,17 @@ const FaviconsPlugin = require('favicons-webpack-plugin')
 const CopyPlugin = require('copy-webpack-plugin')
 const HtmlPlugin = require('html-webpack-plugin')
 const MiniCssExtractPlugin = require('mini-css-extract-plugin')
+const get = require('lodash/get')
 
-const htmlHeadTags = (fileName, filterKey, filterValue) => {
-  const compareTags = (htmlWebpackPlugin) => htmlWebpackPlugin.tags.headTags
-      .filter((tag) => filterKey.split('.').reduce((obj, path) => obj ? obj[path] : false, tag) === filterValue)
+const htmlHeadTags = ({ fileName, filterKey, filterValue }) => {
+  const getTemplateContent = (htmlWebpackPlugin) => htmlWebpackPlugin.tags.headTags
+      .filter(tagNode => get(tagNode, filterKey) === filterValue)
       .join('')
       // It must be Handlebars template with root path as variable
       .replaceAll('uiRootPath', '{{{uiRootPath}}}')
   return new HtmlPlugin({
     publicPath: 'uiRootPath',
-    templateContent: ({htmlWebpackPlugin}) => `${compareTags(htmlWebpackPlugin)}`,
+    templateContent: ({htmlWebpackPlugin}) => `${getTemplateContent(htmlWebpackPlugin)}`,
     filename: `partials/${fileName}`,
     inject: false
   })
@@ -41,9 +42,9 @@ module.exports = {
       filename: './css/[name].[contenthash].css'
     }),
     new ZipPlugin({ filename: bundleName }),
-    htmlHeadTags('head-icons.hbs', 'meta.plugin', 'favicons-webpack-plugin'),
-    htmlHeadTags('head-styles.hbs', 'attributes.rel', 'stylesheet'),
-    htmlHeadTags('head-local-scripts.hbs', 'tagName', 'script'),
+    htmlHeadTags({fileName: 'head-icons.hbs', filterKey: 'meta.plugin', filterValue: 'favicons-webpack-plugin'}),
+    htmlHeadTags({fileName: 'head-styles.hbs', filterKey: 'attributes.rel', filterValue: 'stylesheet'}),
+    htmlHeadTags({fileName: 'head-local-scripts.hbs', filterKey: 'tagName', filterValue: 'script'}),
     new FaviconsPlugin({
       logo: 'logo.svg',
       favicons: { appName: 'Taymyr' },
